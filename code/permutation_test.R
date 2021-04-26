@@ -8,9 +8,11 @@
   ## marginal p-values based on permutation
   ## p-value of the individual distance metrics as well as omnibus test
 
-permutation_test <- function(x, y, m.list, nperm = 10000){
+permutation_test <- function(x, y,m.list, nperm = 10000){
   n <- length(y)
 
+  obs.vec <- rep(1, length(m.list))
+  perm.mat <-  matrix(NA, nrow=nperm, ncol=length(m.list))
   ##assuming there are no confounders
   x.adj <- resid(lm(x ~ 1))
   z1 <- rep(1, n)
@@ -34,15 +36,12 @@ permutation_test <- function(x, y, m.list, nperm = 10000){
     u <- obj$vectors
     u <- u[, lambda > 1E-8, drop = FALSE]
     lambda <- lambda[lambda > 1E-8]
-    if (is.null(z)) {
-      u.adj <- apply(u, 2, function (xx) resid(lm(xx ~ 1)))
-      u.x.adj <- apply(u, 2, function (xx) resid(lm(xx ~ x)))
-    } else {
-      u.adj <- apply(u, 2, function (xx) resid(lm(xx ~ z)))
-      u.x.adj <- apply(u, 2, function (xx) resid(lm(xx ~ z + x)))
-    }
+    u.adj <- apply(u, 2, function (xx) resid(lm(xx ~ 1)))
+    u.x.adj <- apply(u, 2, function (xx) resid(lm(xx ~ x)))
+
 
     obs.vec[j] <- sum(lambda * abs(t(u.adj) %*% x.adj) * abs(t(u.x.adj) %*% y.adj))
+
     perm.mat[, j] <- sapply(1:nperm, function(i) {
       x.adj.p <- Px %*% x.adj[sample(n)]
       y.adj.p <- Py %*% y.adj[sample(n)]
@@ -61,7 +60,6 @@ permutation_test <- function(x, y, m.list, nperm = 10000){
 
 
   list(margPs = margPs,
-       #margP = min(min(margPs * length(m.list)), 1),
        permP = mean(c(rowMins(perm.mat.p) <= min(margPs), 1)))
 
 }
